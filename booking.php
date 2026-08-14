@@ -107,37 +107,96 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     elseif ($type == 'bus') $details = $item['bus_name'] . ' (' . $item['bus_number'] . ') - ' . $item['departure_city'] . ' to ' . $item['arrival_city'];
     elseif ($type == 'cruise') $details = $item['cruise_line'] . ' - ' . $item['ship_name'];
     else $details = $item['package_name'] . ' - ' . $item['destination'];
+
     
 $sql = "INSERT INTO bookings (
-    user_id, booking_type, booking_reference, item_id, details, 
-    travel_date, return_date, check_in_date, check_out_date, quantity, total_amount, status, payment_status
-) VALUES (
-    '$user_id', '$type', '$booking_ref', '$item_id', '$details', 
-    '$travel_date', " . ($return_date ? "'$return_date'" : "NULL") . ", 
-    " . ($check_in ? "'$check_in'" : "NULL") . ", 
-    " . ($check_out ? "'$check_out'" : "NULL") . ", 
-    '$quantity', '$total_amount', 'pending', 'pending'
-)";
+    user_id,
+    booking_type,
+    booking_reference,
+    item_id,
+    details,
+    travel_date,
+    return_date,
+    check_in_date,
+    check_out_date,
+    quantity,
+    total_amount,
+    status,
+    payment_status
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', 'pending')";
 
-    if (mysqli_query($conn, $sql)) {
+$stmt = mysqli_prepare($conn, $sql);
+
+if (!$stmt) {
+    $error = "Booking failed: " . mysqli_error($conn);
+} else {
+
+    mysqli_stmt_bind_param(
+        $stmt,
+        "ississsssid",
+        $user_id,
+        $type,
+        $booking_ref,
+        $item_id,
+        $details,
+        $travel_date,
+        $return_date,
+        $check_in,
+        $check_out,
+        $quantity,
+        $total_amount
+    );
+
+    if (mysqli_stmt_execute($stmt)) {
+
         $booking_id = mysqli_insert_id($conn);
-        
+
         // Update availability
         if ($type == 'flight' || $type == 'train' || $type == 'bus') {
-            mysqli_query($conn, "UPDATE $table_name SET available_seats = available_seats - $quantity WHERE id='$item_id'");
+
+            mysqli_query(
+                $conn,
+                "UPDATE $table_name
+                 SET available_seats = available_seats - $quantity
+                 WHERE id='$item_id'"
+            );
+
         } elseif ($type == 'hotel') {
-            mysqli_query($conn, "UPDATE $table_name SET available_rooms = available_rooms - $quantity WHERE id='$item_id'");
+
+            mysqli_query(
+                $conn,
+                "UPDATE $table_name
+                 SET available_rooms = available_rooms - $quantity
+                 WHERE id='$item_id'"
+            );
+
         } elseif ($type == 'cruise') {
-            mysqli_query($conn, "UPDATE $table_name SET available_cabins = available_cabins - $quantity WHERE id='$item_id'");
+
+            mysqli_query(
+                $conn,
+                "UPDATE $table_name
+                 SET available_cabins = available_cabins - $quantity
+                 WHERE id='$item_id'"
+            );
+
         } else {
-            mysqli_query($conn, "UPDATE $table_name SET available_slots = available_slots - $quantity WHERE id='$item_id'");
+
+            mysqli_query(
+                $conn,
+                "UPDATE $table_name
+                 SET available_slots = available_slots - $quantity
+                 WHERE id='$item_id'"
+            );
         }
-        
+
         header("Location: payment.php?booking_id=$booking_id");
         exit();
+
     } else {
-        $error = "Booking failed. Please try again.";
+        $error = "Booking failed: " . mysqli_stmt_error($stmt);
     }
+
+    mysqli_stmt_close($stmt);
 }
 ?>
 <!DOCTYPE html>
