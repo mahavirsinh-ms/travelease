@@ -19,8 +19,7 @@ session_start();
 </head>
 <body>
     <!-- Navigation Bar -->
-    
-<?php include __DIR__ . '/includes/navbar.php'; ?>
+    <?php include __DIR__ . '/includes/navbar.php'; ?>
 
     <!-- Hero Section -->
     <section class="hero">

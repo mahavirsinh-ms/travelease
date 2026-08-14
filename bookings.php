@@ -687,7 +687,7 @@ $result = $stmt->get_result();
 </head>
 <body>
     <!-- Navbar (same as your index.php) -->
-    <?php include '.\includes\navbar.php'; ?>
+    <?php include './includes/navbar.php'; ?>
 
     <div class="bookings-container">
         <?php if (isset($_SESSION['success_message'])): ?>

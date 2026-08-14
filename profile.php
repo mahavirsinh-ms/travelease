@@ -304,7 +304,7 @@ $bookings_result = mysqli_query($conn, $bookings_sql);
 </head>
 <body>
     <!-- Navigation Bar -->
-    <?php include '.\includes\navbar.php'; ?>
+    <?php include './includes/navbar.php'; ?>
 
 
     <div class="profile-page">
@@ -439,7 +439,7 @@ $bookings_result = mysqli_query($conn, $bookings_sql);
     </div>
 
     <!-- Footer -->
-    <?php include '.\includes\footer.php'; ?>
+    <?php include './includes/footer.php'; ?>
 
 
     <script>
