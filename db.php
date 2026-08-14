@@ -14,50 +14,42 @@
    ============================================================ */
 
 class TravelEaseResult {
-
     private array $rows = [];
     private int $index = 0;
 
-    public function __construct(?PDOStatement $stmt = null) {
+    // MySQL compatibility:
+    // Supports $result->num_rows
+    public int $num_rows = 0;
 
+    public function __construct(?PDOStatement $stmt = null) {
         if ($stmt) {
-            $this->rows =
-                $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $this->rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $this->num_rows = count($this->rows);
         }
     }
 
     public function fetch_assoc(): ?array {
-
-        if (
-            $this->index >=
-            count($this->rows)
-        ) {
+        if ($this->index >= count($this->rows)) {
             return null;
         }
 
         return $this->rows[$this->index++];
     }
 
+    // Also supports $result->num_rows()
     public function num_rows(): int {
-
-        return count($this->rows);
+        return $this->num_rows;
     }
 
     public function data_seek(int $offset): bool {
-
-        if (
-            $offset < 0 ||
-            $offset > count($this->rows)
-        ) {
+        if ($offset < 0 || $offset > count($this->rows)) {
             return false;
         }
 
         $this->index = $offset;
-
         return true;
     }
 }
-
 
 /* ============================================================
    PREPARED STATEMENT COMPATIBILITY
