@@ -16,6 +16,11 @@ if (!$type || !$item_id) {
     exit();
 }
 
+
+// ============================================================
+// DETERMINE TABLE
+// ============================================================
+
 $table_name = '';
 
 switch ($type) {
@@ -50,18 +55,15 @@ switch ($type) {
 
 
 // ============================================================
-// GET ITEM DETAILS
+// GET ITEM
 // ============================================================
 
-$stmt = $conn->prepare(
-    "SELECT * FROM {$table_name} WHERE id = :id"
+$result = mysqli_query(
+    $conn,
+    "SELECT * FROM {$table_name} WHERE id = {$item_id}"
 );
 
-$stmt->execute([
-    ':id' => $item_id
-]);
-
-$item = $stmt->fetch(PDO::FETCH_ASSOC);
+$item = mysqli_fetch_assoc($result);
 
 if (!$item) {
     header("Location: index.php");
@@ -71,6 +73,7 @@ if (!$item) {
 
 // ============================================================
 // INITIALIZE DATES
+// ============================================================
 
 $travel_date = null;
 $return_date = null;
@@ -83,12 +86,14 @@ if ($type === 'cruise') {
         ? $item['departure_date']
         : null;
 
-    if ($travel_date && isset($item['duration_nights'])) {
+    if ($travel_date) {
+
+        $duration_nights = (int)($item['duration_nights'] ?? 0);
 
         $return_date = date(
             'Y-m-d',
             strtotime(
-                $travel_date . ' + ' . (int)$item['duration_nights'] . ' days'
+                $travel_date . " + {$duration_nights} days"
             )
         );
     }
@@ -103,7 +108,6 @@ elseif ($type === 'holiday') {
         $travel_date = !empty($_POST['travel_date'])
             ? $_POST['travel_date']
             : null;
-
     }
 
     $duration_days = (int)($item['duration_days'] ?? 1);
@@ -112,14 +116,22 @@ elseif ($type === 'holiday') {
 
         $return_date = date(
             'Y-m-d',
-            strtotime($travel_date . " + {$duration_days} days")
+            strtotime(
+                $travel_date . " + {$duration_days} days"
+            )
         );
     }
 }
 
 
 // Flight / Train / Bus
-elseif (in_array($type, ['flight', 'train', 'bus'], true)) {
+elseif (
+    in_array(
+        $type,
+        ['flight', 'train', 'bus'],
+        true
+    )
+) {
 
     $travel_date = !empty($item['departure_date'])
         ? $item['departure_date']
@@ -128,7 +140,7 @@ elseif (in_array($type, ['flight', 'train', 'bus'], true)) {
 
 
 // ============================================================
-// HANDLE BOOKING SUBMISSION
+// HANDLE BOOKING
 // ============================================================
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -146,7 +158,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // TRAVEL DATE
     // --------------------------------------------------------
 
-    if (in_array($type, ['flight', 'train', 'bus', 'cruise'], true)) {
+    if (
+        in_array(
+            $type,
+            ['flight', 'train', 'bus', 'cruise'],
+            true
+        )
+    ) {
 
         $travel_date = !empty($item['departure_date'])
             ? $item['departure_date']
@@ -174,7 +192,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 
     // --------------------------------------------------------
-    // CALCULATE TOTAL
+    // CALCULATE PRICE
     // --------------------------------------------------------
 
     if ($type === 'hotel') {
@@ -189,26 +207,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (
         $type === 'hotel' &&
-        $check_in !== null &&
-        $check_out !== null
+        $check_in &&
+        $check_out
     ) {
 
-        $check_in_timestamp = strtotime($check_in);
-        $check_out_timestamp = strtotime($check_out);
-
         $days = (
-            $check_out_timestamp - $check_in_timestamp
+            strtotime($check_out) -
+            strtotime($check_in)
         ) / 86400;
 
         if ($days < 1) {
             $days = 1;
         }
 
-        $total_amount = $unit_price * $days * $quantity;
+        $total_amount =
+            $unit_price *
+            $days *
+            $quantity;
 
     } else {
 
-        $total_amount = $unit_price * $quantity;
+        $total_amount =
+            $unit_price *
+            $quantity;
     }
 
 
@@ -216,16 +237,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // BOOKING REFERENCE
     // --------------------------------------------------------
 
-    $booking_ref = strtoupper($type)
-        . rand(1000, 9999)
-        . time();
+    $booking_ref =
+        strtoupper($type) .
+        rand(1000, 9999) .
+        time();
 
 
     // --------------------------------------------------------
     // BOOKING DETAILS
     // --------------------------------------------------------
-
-    $details = '';
 
     if ($type === 'flight') {
 
@@ -263,7 +283,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $item['cruise_line'] . ' - ' .
             $item['ship_name'];
 
-    } elseif ($type === 'holiday') {
+    } else {
 
         $details =
             $item['package_name'] . ' - ' .
@@ -278,9 +298,67 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
 
         /*
-         * PostgreSQL allows us to use RETURNING id
-         * instead of mysqli_insert_id().
+         * IMPORTANT:
+         *
+         * PostgreSQL does not accept an empty string for a DATE.
+         *
+         * Therefore we use NULL for missing dates.
          */
+
+        $travel_date_sql =
+            $travel_date !== null
+            ? "'" . mysqli_real_escape_string(
+                $conn,
+                $travel_date
+            ) . "'"
+            : "NULL";
+
+
+        $return_date_sql =
+            $return_date !== null
+            ? "'" . mysqli_real_escape_string(
+                $conn,
+                $return_date
+            ) . "'"
+            : "NULL";
+
+
+        $check_in_sql =
+            $check_in !== null
+            ? "'" . mysqli_real_escape_string(
+                $conn,
+                $check_in
+            ) . "'"
+            : "NULL";
+
+
+        $check_out_sql =
+            $check_out !== null
+            ? "'" . mysqli_real_escape_string(
+                $conn,
+                $check_out
+            ) . "'"
+            : "NULL";
+
+
+        $safe_type =
+            mysqli_real_escape_string(
+                $conn,
+                $type
+            );
+
+        $safe_booking_ref =
+            mysqli_real_escape_string(
+                $conn,
+                $booking_ref
+            );
+
+        $safe_details =
+            mysqli_real_escape_string(
+                $conn,
+                $details
+            );
+
 
         $sql = "
             INSERT INTO bookings (
@@ -299,107 +377,93 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 payment_status
             )
             VALUES (
-                :user_id,
-                :booking_type,
-                :booking_reference,
-                :item_id,
-                :details,
-                :travel_date,
-                :return_date,
-                :check_in_date,
-                :check_out_date,
-                :quantity,
-                :total_amount,
-                :status,
-                :payment_status
+                {$user_id},
+                '{$safe_type}',
+                '{$safe_booking_ref}',
+                {$item_id},
+                '{$safe_details}',
+                {$travel_date_sql},
+                {$return_date_sql},
+                {$check_in_sql},
+                {$check_out_sql},
+                {$quantity},
+                {$total_amount},
+                'pending',
+                'pending'
             )
             RETURNING id
         ";
 
 
-        $stmt = $conn->prepare($sql);
+        /*
+         * We cannot use the old mysqli_query() wrapper for
+         * RETURNING id because it currently doesn't expose it.
+         *
+         * Execute it directly through the underlying PDO.
+         */
 
+        $stmt = $conn->pdo->query(
+            travelEaseNormalizeSql($sql)
+        );
 
-        $stmt->execute([
-
-            ':user_id' => $user_id,
-
-            ':booking_type' => $type,
-
-            ':booking_reference' => $booking_ref,
-
-            ':item_id' => $item_id,
-
-            ':details' => $details,
-
-            /*
-             * IMPORTANT:
-             * PostgreSQL receives NULL instead of ''
-             * for empty date values.
-             */
-
-            ':travel_date' => $travel_date ?: null,
-
-            ':return_date' => $return_date ?: null,
-
-            ':check_in_date' => $check_in ?: null,
-
-            ':check_out_date' => $check_out ?: null,
-
-            ':quantity' => $quantity,
-
-            ':total_amount' => $total_amount,
-
-            ':status' => 'pending',
-
-            ':payment_status' => 'pending'
-        ]);
-
-
-        // Get newly-created booking ID
         $booking_id = $stmt->fetchColumn();
+
+
+        if (!$booking_id) {
+            throw new Exception(
+                "Booking was inserted but booking ID was not returned."
+            );
+        }
 
 
         // ====================================================
         // UPDATE AVAILABILITY
         // ====================================================
 
-        if (in_array($type, ['flight', 'train', 'bus'], true)) {
+        if (
+            in_array(
+                $type,
+                ['flight', 'train', 'bus'],
+                true
+            )
+        ) {
 
-            $availability_column = 'available_seats';
+            $availability_column =
+                'available_seats';
 
         } elseif ($type === 'hotel') {
 
-            $availability_column = 'available_rooms';
+            $availability_column =
+                'available_rooms';
 
         } elseif ($type === 'cruise') {
 
-            $availability_column = 'available_cabins';
+            $availability_column =
+                'available_cabins';
 
         } else {
 
-            $availability_column = 'available_slots';
+            $availability_column =
+                'available_slots';
         }
 
 
         $update_sql = "
             UPDATE {$table_name}
             SET {$availability_column} =
-                {$availability_column} - :quantity
-            WHERE id = :id
+                {$availability_column} - {$quantity}
+            WHERE id = {$item_id}
         ";
 
 
-        $update_stmt = $conn->prepare($update_sql);
-
-        $update_stmt->execute([
-            ':quantity' => $quantity,
-            ':id' => $item_id
-        ]);
+        mysqli_query(
+            $conn,
+            $update_sql
+        );
 
 
         // ====================================================
-        // REDIRECT TO PAYMENT
+        // PAYMENT
         // ====================================================
 
         header(
@@ -410,20 +474,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit();
 
 
-    } catch (PDOException $e) {
-
-        /*
-         * Log the actual database error.
-         * Don't expose database details to customers.
-         */
+    } catch (Throwable $e) {
 
         error_log(
-            "Booking error: " . $e->getMessage()
+            "Booking error: " .
+            $e->getMessage()
         );
 
-        $error = "Booking failed. Please try again.";
+        $error =
+            "Booking failed. Please try again.";
     }
 }
+
 
 ?>
 <!DOCTYPE html>
