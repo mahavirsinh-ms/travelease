@@ -115,7 +115,7 @@ session_start();
             <!-- Goa -->
             <div class="destination-card" data-destination="goa">
                 <div class="destination-image">
-                    <img src=".\tour_images\goahome.jpg" alt="Goa">
+                    <img src="/tour_images/goahome.jpg" alt="Goa">
                     <div class="destination-overlay">
                         <h3>Goa</h3>
                         <p>Beaches • Nightlife • Adventure</p>
@@ -131,7 +131,7 @@ session_start();
             <!-- Tokyo -->
             <div class="destination-card" data-destination="tokyo">
                 <div class="destination-image">
-                    <img src=".\tour_images\japanhome.jpg" alt="Tokyo">
+                    <img src="/tour_images/japanhome.jpg" alt="Tokyo">
                     <div class="destination-overlay">
                         <h3>Tokyo</h3>
                         <p>Culture • Technology • Cuisine</p>
@@ -147,7 +147,7 @@ session_start();
             <!-- Rajasthan -->
             <div class="destination-card" data-destination="rajasthan">
                 <div class="destination-image">
-                    <img src=".\tour_images\rajasthanhome.jpg" alt="Rajasthan">
+                    <img src="/tour_images/rajasthanhome.jpg" alt="Rajasthan">
                     <div class="destination-overlay">
                         <h3>Rajasthan</h3>
                         <p>Palaces • Deserts • Culture</p>
@@ -163,7 +163,7 @@ session_start();
             <!-- Himachal -->
             <div class="destination-card" data-destination="himachal">
                 <div class="destination-image">
-                    <img src=".\tour_images\himachalhome.jpg" alt="Himachal">
+                    <img src="/tour_images/himachalhome.jpg" alt="Himachal">
                     <div class="destination-overlay">
                         <h3>Himachal</h3>
                         <p>Mountains • Trekking • Snow</p>
@@ -179,7 +179,7 @@ session_start();
             <!-- Paris -->
             <div class="destination-card" data-destination="Paris">
                 <div class="destination-image">
-                    <img src=".\tour_images\parishome.jpg" alt="Paris">
+                    <img src="/tour_images/parishome.jpg" alt="Paris">
                     <div class="destination-overlay">
                         <h3>Paris</h3>
                         <p>Art • Culture • Cityscape</p>
@@ -195,7 +195,7 @@ session_start();
             <!-- Dubai -->
             <div class="destination-card" data-destination="dubai">
                 <div class="destination-image">
-                    <img src=".\tour_images\dubaihome.jpg" alt="Dubai">
+                    <img src="/tour_images/dubaihome.jpg" alt="Dubai">
                     <div class="destination-overlay">
                         <h3>Dubai</h3>
                         <p>Skyscrapers • Shopping • Luxury</p>
