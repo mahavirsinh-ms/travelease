@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TravelEase - Frequently Asked Questions</title>
+   
+   
+    <link rel="stylesheet" href="css/all.min.css">
+    <link rel="stylesheet" href="css/fonts.css">
+    <!-- <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"> -->
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        :root {
+            --primary: #143c5b;
+            --secondary: #00ffe5;
+            --accent: #258e8a;
+            --light: #F8F9FA;
+            --dark: #1A3C5E;
+            --text: #333333;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #e0f7ff 0%, #f5f0ff 100%);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 20px;
+            border-radius: 20px;
+            background: linear-gradient(to right, var(--primary), var(--accent));
+            color: white;
+            box-shadow: 0 10px 20px rgba(42, 92, 130, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        header::before {
+            content: "";
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 1px, transparent 1px);
+            background-size: 30px 30px;
+            transform: rotate(15deg);
+            z-index: 0;
+        }
+        
+        .logo {
+            font-size: 2.8rem;
+            font-weight: 800;
+            margin-bottom: 10px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .logo span {
+            color: var(--secondary);
+        }
+        
+        .tagline {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .faq-container {
+            background-color: white;
+            border-radius: 20px;
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            margin-bottom: 30px;
+        }
+        
+        .faq-item {
+            border-bottom: 1px solid #eee;
+            overflow: hidden;
+        }
+        
+        .faq-question {
+            padding: 22px 30px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+            background-color: white;
+        }
+        
+        .faq-question:hover {
+            background-color: #f9f9f9;
+        }
+        
+        .faq-question h3 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--dark);
+            flex: 1;
+        }
+        
+        .faq-icon {
+            color: var(--secondary);
+            font-size: 1.3rem;
+            transition: transform 0.3s ease;
+        }
+        
+        .faq-answer {
+            padding: 0 30px;
+            max-height: 0;
+            overflow: hidden;
+            transition: all 0.5s ease;
+            background-color: #f9f9f9;
+            color: #555;
+            line-height: 1.6;
+        }
+        
+        .faq-item.active .faq-answer {
+            padding: 25px 30px;
+            max-height: 500px;
+        }
+        
+        .faq-item.active .faq-icon {
+            transform: rotate(45deg);
+        }
+        
+        .category-title {
+            font-size: 1.5rem;
+            margin: 40px 0 20px;
+            color: var(--primary);
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--secondary);
+            display: inline-block;
+        }
+        
+        .contact-section {
+            background: linear-gradient(to right, var(--primary), var(--accent));
+            color: white;
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+            margin-top: 40px;
+            box-shadow: 0 10px 20px rgba(42, 92, 130, 0.2);
+        }
+        
+        .contact-section h2 {
+            margin-bottom: 15px;
+            font-size: 1.8rem;
+        }
+        
+        .contact-btn {
+            display: inline-block;
+            background-color: var(--secondary);
+            color: var(--dark);
+            padding: 12px 30px;
+            border-radius: 50px;
+            font-weight: 600;
+            margin-top: 15px;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            border: 2px solid var(--secondary);
+        }
+        
+        .contact-btn:hover {
+            background-color: transparent;
+            color: var(--secondary);
+        }
+        
+        .decorative-elements {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+        }
+        
+        .element {
+            position: absolute;
+            border-radius: 50%;
+            opacity: 0.1;
+        }
+        
+        .element-1 {
+            width: 200px;
+            height: 200px;
+            background-color: var(--primary);
+            top: 10%;
+            right: 5%;
+        }
+        
+        .element-2 {
+            width: 150px;
+            height: 150px;
+            background-color: var(--accent);
+            bottom: 10%;
+            left: 5%;
+        }
+        
+        .element-3 {
+            width: 100px;
+            height: 100px;
+            background-color: var(--secondary);
+            top: 50%;
+            left: 10%;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .faq-question {
+                padding: 18px 20px;
+            }
+            
+            .faq-answer {
+                padding: 0 20px;
+            }
+            
+            .faq-item.active .faq-answer {
+                padding: 20px;
+            }
+            
+            .logo {
+                font-size: 2.2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="decorative-elements">
+        <div class="element element-1"></div>
+        <div class="element element-2"></div>
+        <div class="element element-3"></div>
+    </div>
+    
+    <div class="container">
+        <header>
+            <h1 class="logo">Travel<span>Ease</span></h1>
+            <p class="tagline">Your journey, simplified. Find answers to common questions below.</p>
+        </header>
+        
+        <div class="faq-container">
+            <h2 class="category-title"><i class="fas fa-plane"></i> Booking & Reservations</h2>
+            
+            <div class="faq-item">
+                <div class="faq-question">
+                    <h3>How do I book a trip with TravelEase?</h3>
+                    <span class="faq-icon"><i class="fas fa-plus"></i></span>
+                </div>
+                <div class="faq-answer">
+                    <p>Booking with TravelEase is simple! Just select your destination, travel dates, and preferences on our homepage. You can then browse through curated packages or customize your own itinerary. Once you're satisfied, proceed to checkout and confirm your booking with secure payment options.</p>
+                </div>
+            </div>
+            
+            <div class="faq-item">
+                <div class="faq-question">
+                    <h3>Can I modify or cancel my booking?</h3>
+                    <span class="faq-icon"><i class="fas fa-plus"></i></span>
+                </div>
+                <div class="faq-answer">
+                    <p>Yes, you can modify or cancel most bookings through your TravelEase account. Modification and cancellation policies vary depending on the service provider and package type. Please check the specific terms during booking or contact our support team for assistance.</p>
+                </div>
+            </div>
+            
+            <div class="faq-item">
+                <div class="faq-question">
+                    <h3>Do you offer last-minute deals?</h3>
+                    <span class="faq-icon"><i class="fas fa-plus"></i></span>
+                </div>
+                <div class="faq-answer">
+                    <p>Absolutely! We regularly update our "Last Minute Deals" section with discounted packages. Subscribe to our newsletter or enable browser notifications to receive instant alerts about special offers and flash sales.</p>
+                </div>
+            </div>
+            
+            <h2 class="category-title"><i class="fas fa-suitcase"></i> Travel Preparation</h2>
+            
+            <div class="faq-item">
+                <div class="faq-question">
+                    <h3>What documents do I need for international travel?</h3>
+                    <span class="faq-icon"><i class="fas fa-plus"></i></span>
+                </div>
+                <div class="faq-answer">
+                    <p>Requirements vary by destination, but generally you'll need a valid passport (with at least 6 months validity), visas (if required), travel insurance, and any necessary vaccination certificates. TravelEase provides a personalized checklist for each booking to ensure you have all required documents.</p>
+                </div>
+            </div>
+            
+            <div class="faq-item">
+                <div class="faq-question">
+                    <h3>How can I get travel insurance through TravelEase?</h3>
+                    <span class="faq-icon"><i class="fas fa-plus"></i></span>
+                </div>
+                <div class="faq-answer">
+                    <p>We partner with leading insurance providers to offer comprehensive travel insurance. You can add insurance during the booking process or purchase it separately through your account dashboard. Our plans cover trip cancellation, medical emergencies, lost luggage, and more.</p>
+                </div>
+            </div>
+            
+            <div class="faq-item">
+                <div class="faq-question">
+                    <h3>What should I pack for my trip?</h3>
+                    <span class="faq-icon"><i class="fas fa-plus"></i></span>
+                </div>
+                <div class="faq-answer">
+                    <p>We provide customized packing lists based on your destination, travel duration, and planned activities. After booking, you'll receive a detailed packing guide including essentials, climate-appropriate clothing, and any special items needed for your itinerary.</p>
+                </div>
+            </div>
+            
+            <h2 class="category-title"><i class="fas fa-concierge-bell"></i> Services & Support</h2>
+            
+            <div class="faq-item">
+                <div class="faq-question">
+                    <h3>What support is available during my trip?</h3>
+                    <span class="faq-icon"><i class="fas fa-plus"></i></span>
+                </div>
+                <div class="faq-answer">
+                    <p>TravelEase offers 24/7 customer support throughout your journey. Our multilingual support team can assist with emergencies, itinerary changes, or any issues that arise. You'll also have access to our mobile app with real-time updates, local contacts, and emergency assistance.</p>
+                </div>
+            </div>
+            
+            <div class="faq-item">
+                <div class="faq-question">
+                    <h3>Do you offer group discounts?</h3>
+                    <span class="faq-icon"><i class="fas fa-plus"></i></span>
+                </div>
+                <div class="faq-answer">
+                    <p>Yes! We offer special rates for groups of 6 or more travelers. Group discounts vary by destination and package but can save you up to 25%. Contact our group travel specialists for customized quotes and itinerary planning for family reunions, corporate retreats, or destination weddings.</p>
+                </div>
+            </div>
+            
+            <div class="faq-item">
+                <div class="faq-question">
+                    <h3>Are your tours accessible for travelers with disabilities?</h3>
+                    <span class="faq-icon"><i class="fas fa-plus"></i></span>
+                </div>
+                <div class="faq-answer">
+                    <p>TravelEase is committed to accessible travel. Many of our packages include accessible accommodations and transportation. Please use our accessibility filter when browsing trips or contact our accessibility specialists who can help customize an itinerary that meets your specific needs.</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="contact-section">
+            <h2>Still have questions?</h2>
+            <p>Our travel experts are here to help you plan the perfect getaway.</p>
+            <a href="index.php#footer-contact" class="contact-btn">Contact Our Support Team</a>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const faqItems = document.querySelectorAll('.faq-item');
+            
+            faqItems.forEach(item => {
+                const question = item.querySelector('.faq-question');
+                
+                question.addEventListener('click', () => {
+                    // Close other open items
+                    faqItems.forEach(otherItem => {
+                        if (otherItem !== item && otherItem.classList.contains('active')) {
+                            otherItem.classList.remove('active');
+                        }
+                    });
+                    
+                    // Toggle current item
+                    item.classList.toggle('active');
+                });
+            });
+            
+            // Open first FAQ item by default
+            if (faqItems.length > 0) {
+                faqItems[0].classList.add('active');
+            }
+        });
+    </script>
+</body>
+</html>
