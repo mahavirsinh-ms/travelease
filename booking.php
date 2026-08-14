@@ -185,35 +185,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // --------------------------------------------------------
     // TRAVEL DATE
     // --------------------------------------------------------
+// --------------------------------------------------------
+// TRAVEL DATE
+// --------------------------------------------------------
 
-    if (
-        in_array(
-            $type,
-            ['flight', 'train', 'bus', 'cruise'],
-            true
-        )
-    ) {
+if (
+    in_array(
+        $type,
+        ['flight', 'train', 'bus', 'cruise'],
+        true
+    )
+) {
 
-        $travel_date =
-            !empty($item['departure_date'])
-            ? $item['departure_date']
-            : null;
+    // Flight / Train / Bus / Cruise
+    $travel_date =
+        !empty($item['departure_date'])
+        ? $item['departure_date']
+        : null;
 
-    } else {
+} elseif ($type === 'hotel') {
 
-        /*
-         * Holiday gets the date from the form.
-         */
+    // Hotel: use check-in date as travel date
+    $travel_date =
+        !empty($_POST['check_in'])
+        ? trim($_POST['check_in'])
+        : null;
 
-        $posted_travel_date =
-            trim($_POST['travel_date'] ?? '');
+} elseif ($type === 'holiday') {
 
-        $travel_date =
-            $posted_travel_date !== ''
-            ? $posted_travel_date
-            : null;
-    }
+    // Holiday: use selected travel date
+    $posted_travel_date =
+        trim($_POST['travel_date'] ?? '');
 
+    $travel_date =
+        $posted_travel_date !== ''
+        ? $posted_travel_date
+        : null;
+}
 
     // --------------------------------------------------------
     // RE-CALCULATE HOLIDAY RETURN DATE
@@ -242,16 +250,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // HOTEL DATES
     // --------------------------------------------------------
 
-    $check_in =
-        !empty($_POST['check_in'])
-        ? trim($_POST['check_in'])
-        : null;
+  // --------------------------------------------------------
+// HOTEL DATES
+// --------------------------------------------------------
 
-    $check_out =
-        !empty($_POST['check_out'])
-        ? trim($_POST['check_out'])
-        : null;
+$check_in =
+    !empty($_POST['check_in'])
+    ? trim($_POST['check_in'])
+    : null;
 
+$check_out =
+    !empty($_POST['check_out'])
+    ? trim($_POST['check_out'])
+    : null;
 
     // --------------------------------------------------------
     // VALIDATE HOLIDAY DATE
