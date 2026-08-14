@@ -827,7 +827,15 @@ $result = $stmt->get_result();
                         <div class="detail-item">
                             <span class="detail-label">Travel Date</span>
                             <span class="detail-value">
-                                <?php echo date('M j, Y', strtotime($booking['travel_date'])); ?>
+                                <?php
+if (!empty($booking['travel_date'])) {
+    echo date('d M Y', strtotime($booking['travel_date']));
+} elseif (!empty($booking['check_in_date'])) {
+    echo date('d M Y', strtotime($booking['check_in_date']));
+} else {
+    echo '-';
+}
+ ?>
                             </span>
                         </div>
                         
