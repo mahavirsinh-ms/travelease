@@ -200,10 +200,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!isset($error)) {
 
         // Generate unique-ish booking reference
-        $booking_ref =
-            strtoupper($type) .
-            rand(1000, 9999) .
-            time();
+       $booking_ref = strtoupper(substr($type, 0, 3)) . rand(100000, 999999);
 
 
         // ----------------------------------------------------
