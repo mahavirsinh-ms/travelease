@@ -109,7 +109,8 @@ $top_destinations = mysqli_query($conn, "SELECT details, COUNT(*) as bookings FR
     <!-- <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"> -->
     <!-- <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet"> -->
     <link rel="stylesheet" href="admin-style.css">
-    <script src="https://travelease-urlk.onrender.com/js/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="../js/charts.js"></script>
     <style>
         .charts-row {
             display: grid;
