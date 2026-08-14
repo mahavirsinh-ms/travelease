@@ -16,33 +16,57 @@ if (!$type || !$item_id) {
     exit();
 }
 
-// Allowed booking types
-$allowed_types = [
-    'flight' => 'flights',
-    'hotel'  => 'hotels',
-    'train'  => 'trains',
-    'bus'    => 'buses',
-    'cruise' => 'cruises',
-    'holiday'=> 'holiday_packages'
-];
 
-if (!isset($allowed_types[$type])) {
-    header("Location: index.php");
-    exit();
+// ============================================================
+// DETERMINE TABLE
+// ============================================================
+
+$table_name = '';
+
+switch ($type) {
+    case 'flight':
+        $table_name = 'flights';
+        break;
+
+    case 'hotel':
+        $table_name = 'hotels';
+        break;
+
+    case 'train':
+        $table_name = 'trains';
+        break;
+
+    case 'bus':
+        $table_name = 'buses';
+        break;
+
+    case 'cruise':
+        $table_name = 'cruises';
+        break;
+
+    case 'holiday':
+        $table_name = 'holiday_packages';
+        break;
+
+    default:
+        header("Location: index.php");
+        exit();
 }
 
-$table_name = $allowed_types[$type];
-$item = null;
 
-// Get item details
-$result = mysqli_query(
-    $conn,
-    "SELECT * FROM {$table_name} WHERE id = {$item_id}"
+// ============================================================
+// GET ITEM DETAILS
+// ============================================================
+
+$stmt = $conn->prepare(
+    "SELECT * FROM {$table_name} WHERE id = :id"
 );
 
-if ($result) {
-    $item = mysqli_fetch_assoc($result);
-}
+$stmt->execute([
+    ':id' => $item_id
+]);
+
+$item = $stmt->fetch(PDO::FETCH_ASSOC);
 
 if (!$item) {
     header("Location: index.php");
@@ -51,44 +75,61 @@ if (!$item) {
 
 
 // ============================================================
-// INITIAL DATES
+// INITIALIZE DATES
 // ============================================================
 
-$travel_date = '';
-$return_date = '';
+$travel_date = null;
+$return_date = null;
 
+
+// Cruise
 if ($type === 'cruise') {
 
-    $travel_date = $item['departure_date'];
+    $travel_date = !empty($item['departure_date'])
+        ? $item['departure_date']
+        : null;
 
-    $return_date = date(
-        'Y-m-d',
-        strtotime(
-            $item['departure_date'] .
-            ' + ' .
-            (int)$item['duration_nights'] .
-            ' days'
-        )
-    );
+    if ($travel_date && isset($item['duration_nights'])) {
 
-} elseif ($type === 'holiday') {
+        $return_date = date(
+            'Y-m-d',
+            strtotime(
+                $travel_date . ' + ' . (int)$item['duration_nights'] . ' days'
+            )
+        );
+    }
+}
+
+
+// Holiday
+elseif ($type === 'holiday') {
 
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        $travel_date = $_POST['travel_date'] ?? '';
+
+        $travel_date = !empty($_POST['travel_date'])
+            ? $_POST['travel_date']
+            : null;
+
     }
 
     $duration_days = (int)($item['duration_days'] ?? 1);
 
     if ($travel_date) {
+
         $return_date = date(
             'Y-m-d',
             strtotime($travel_date . " + {$duration_days} days")
         );
     }
+}
 
-} elseif (in_array($type, ['flight', 'train', 'bus'], true)) {
 
-    $travel_date = $item['departure_date'];
+// Flight / Train / Bus
+elseif (in_array($type, ['flight', 'train', 'bus'], true)) {
+
+    $travel_date = !empty($item['departure_date'])
+        ? $item['departure_date']
+        : null;
 }
 
 
@@ -108,165 +149,144 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 
     // --------------------------------------------------------
-    // Travel date
+    // TRAVEL DATE
     // --------------------------------------------------------
 
     if (in_array($type, ['flight', 'train', 'bus', 'cruise'], true)) {
 
-        $travel_date = $item['departure_date'];
+        $travel_date = !empty($item['departure_date'])
+            ? $item['departure_date']
+            : null;
 
     } else {
 
-        $travel_date = $_POST['travel_date'] ?? '';
-
-        if (!$travel_date) {
-            $error = "Please select a travel date.";
-        }
+        $travel_date = !empty($_POST['travel_date'])
+            ? $_POST['travel_date']
+            : null;
     }
 
 
     // --------------------------------------------------------
-    // Hotel dates
+    // HOTEL DATES
     // --------------------------------------------------------
 
-    $check_in = $_POST['check_in'] ?? null;
-    $check_out = $_POST['check_out'] ?? null;
+    $check_in = !empty($_POST['check_in'])
+        ? $_POST['check_in']
+        : null;
+
+    $check_out = !empty($_POST['check_out'])
+        ? $_POST['check_out']
+        : null;
 
 
     // --------------------------------------------------------
-    // Calculate return date for holiday
+    // CALCULATE TOTAL
     // --------------------------------------------------------
 
-    if ($type === 'holiday' && $travel_date) {
+    if ($type === 'hotel') {
 
-        $duration_days = (int)($item['duration_days'] ?? 1);
+        $unit_price = (float)$item['price_per_night'];
 
-        $return_date = date(
-            'Y-m-d',
-            strtotime($travel_date . " + {$duration_days} days")
-        );
+    } else {
 
+        $unit_price = (float)$item['price'];
+    }
+
+
+    if (
+        $type === 'hotel' &&
+        $check_in !== null &&
+        $check_out !== null
+    ) {
+
+        $check_in_timestamp = strtotime($check_in);
+        $check_out_timestamp = strtotime($check_out);
+
+        $days = (
+            $check_out_timestamp - $check_in_timestamp
+        ) / 86400;
+
+        if ($days < 1) {
+            $days = 1;
+        }
+
+        $total_amount = $unit_price * $days * $quantity;
+
+    } else {
+
+        $total_amount = $unit_price * $quantity;
     }
 
 
     // --------------------------------------------------------
-    // Calculate price
+    // BOOKING REFERENCE
     // --------------------------------------------------------
 
-    if (!isset($error)) {
-
-        if ($type === 'hotel') {
-
-            $unit_price = (float)$item['price_per_night'];
-
-        } else {
-
-            $unit_price = (float)$item['price'];
-
-        }
+    $booking_ref = strtoupper($type)
+        . rand(1000, 9999)
+        . time();
 
 
-        // Hotel pricing based on nights
-        if ($type === 'hotel' && $check_in && $check_out) {
+    // --------------------------------------------------------
+    // BOOKING DETAILS
+    // --------------------------------------------------------
 
-            $check_in_time = strtotime($check_in);
-            $check_out_time = strtotime($check_out);
+    $details = '';
 
-            $days = ($check_out_time - $check_in_time) / 86400;
+    if ($type === 'flight') {
 
-            if ($days < 1) {
-                $error = "Check-out date must be after check-in date.";
-            } else {
+        $details =
+            $item['airline'] . ' ' .
+            $item['flight_number'] . ' - ' .
+            $item['departure_city'] . ' to ' .
+            $item['arrival_city'];
 
-                $total_amount =
-                    $unit_price *
-                    $days *
-                    $quantity;
-            }
+    } elseif ($type === 'hotel') {
 
-        } else {
+        $details =
+            $item['name'] . ' - ' .
+            $item['city'];
 
-            $total_amount =
-                $unit_price *
-                $quantity;
-        }
+    } elseif ($type === 'train') {
+
+        $details =
+            $item['train_name'] . ' (' .
+            $item['train_number'] . ') - ' .
+            $item['departure_station'] . ' to ' .
+            $item['arrival_station'];
+
+    } elseif ($type === 'bus') {
+
+        $details =
+            $item['bus_name'] . ' (' .
+            $item['bus_number'] . ') - ' .
+            $item['departure_city'] . ' to ' .
+            $item['arrival_city'];
+
+    } elseif ($type === 'cruise') {
+
+        $details =
+            $item['cruise_line'] . ' - ' .
+            $item['ship_name'];
+
+    } elseif ($type === 'holiday') {
+
+        $details =
+            $item['package_name'] . ' - ' .
+            $item['destination'];
     }
 
 
-    // --------------------------------------------------------
-    // Create booking
-    // --------------------------------------------------------
+    // ========================================================
+    // INSERT BOOKING
+    // ========================================================
 
-    if (!isset($error)) {
+    try {
 
-        // Generate unique-ish booking reference
-       $booking_ref = strtoupper(substr($type, 0, 3)) . rand(100000, 999999);
-
-
-        // ----------------------------------------------------
-        // Booking details
-        // ----------------------------------------------------
-
-        if ($type === 'flight') {
-
-            $details =
-                $item['airline'] .
-                ' ' .
-                $item['flight_number'] .
-                ' - ' .
-                $item['departure_city'] .
-                ' to ' .
-                $item['arrival_city'];
-
-        } elseif ($type === 'hotel') {
-
-            $details =
-                $item['name'] .
-                ' - ' .
-                $item['city'];
-
-        } elseif ($type === 'train') {
-
-            $details =
-                $item['train_name'] .
-                ' (' .
-                $item['train_number'] .
-                ') - ' .
-                $item['departure_station'] .
-                ' to ' .
-                $item['arrival_station'];
-
-        } elseif ($type === 'bus') {
-
-            $details =
-                $item['bus_name'] .
-                ' (' .
-                $item['bus_number'] .
-                ') - ' .
-                $item['departure_city'] .
-                ' to ' .
-                $item['arrival_city'];
-
-        } elseif ($type === 'cruise') {
-
-            $details =
-                $item['cruise_line'] .
-                ' - ' .
-                $item['ship_name'];
-
-        } else {
-
-            // Holiday
-            $details =
-                $item['package_name'] .
-                ' - ' .
-                $item['destination'];
-        }
-
-
-        // ----------------------------------------------------
-        // PostgreSQL-compatible prepared INSERT
-        // ----------------------------------------------------
+        /*
+         * PostgreSQL allows us to use RETURNING id
+         * instead of mysqli_insert_id().
+         */
 
         $sql = "
             INSERT INTO bookings (
@@ -285,193 +305,129 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 payment_status
             )
             VALUES (
-                ?,
-                ?,
-                ?,
-                ?,
-                ?,
-                ?,
-                ?,
-                ?,
-                ?,
-                ?,
-                ?,
-                'pending',
-                'pending'
+                :user_id,
+                :booking_type,
+                :booking_reference,
+                :item_id,
+                :details,
+                :travel_date,
+                :return_date,
+                :check_in_date,
+                :check_out_date,
+                :quantity,
+                :total_amount,
+                :status,
+                :payment_status
             )
+            RETURNING id
         ";
 
 
-        $stmt = mysqli_prepare($conn, $sql);
+        $stmt = $conn->prepare($sql);
 
 
-        if (!$stmt) {
+        $stmt->execute([
 
-            $error =
-                "Booking failed: " .
-                mysqli_error($conn);
+            ':user_id' => $user_id,
+
+            ':booking_type' => $type,
+
+            ':booking_reference' => $booking_ref,
+
+            ':item_id' => $item_id,
+
+            ':details' => $details,
+
+            /*
+             * IMPORTANT:
+             * PostgreSQL receives NULL instead of ''
+             * for empty date values.
+             */
+
+            ':travel_date' => $travel_date ?: null,
+
+            ':return_date' => $return_date ?: null,
+
+            ':check_in_date' => $check_in ?: null,
+
+            ':check_out_date' => $check_out ?: null,
+
+            ':quantity' => $quantity,
+
+            ':total_amount' => $total_amount,
+
+            ':status' => 'pending',
+
+            ':payment_status' => 'pending'
+        ]);
+
+
+        // Get newly-created booking ID
+        $booking_id = $stmt->fetchColumn();
+
+
+        // ====================================================
+        // UPDATE AVAILABILITY
+        // ====================================================
+
+        if (in_array($type, ['flight', 'train', 'bus'], true)) {
+
+            $availability_column = 'available_seats';
+
+        } elseif ($type === 'hotel') {
+
+            $availability_column = 'available_rooms';
+
+        } elseif ($type === 'cruise') {
+
+            $availability_column = 'available_cabins';
 
         } else {
 
-            /*
-             * Types:
-             *
-             * i = user_id
-             * s = booking_type
-             * s = booking_reference
-             * i = item_id
-             * s = details
-             * s = travel_date
-             * s = return_date
-             * s = check_in
-             * s = check_out
-             * i = quantity
-             * d = total_amount
-             */
-
-            mysqli_stmt_bind_param(
-                $stmt,
-                "ississsss id",
-                $user_id,
-                $type,
-                $booking_ref,
-                $item_id,
-                $details,
-                $travel_date,
-                $return_date,
-                $check_in,
-                $check_out,
-                $quantity,
-                $total_amount
-            );
-
-
-            // Remove accidental space from type string
-            // and prepare again with the correct type definition.
-            mysqli_stmt_close($stmt);
-
-            $stmt = mysqli_prepare($conn, $sql);
-
-            if (!$stmt) {
-
-                $error =
-                    "Booking failed: " .
-                    mysqli_error($conn);
-
-            } else {
-
-                mysqli_stmt_bind_param(
-                    $stmt,
-                    "ississsss id",
-                    $user_id,
-                    $type,
-                    $booking_ref,
-                    $item_id,
-                    $details,
-                    $travel_date,
-                    $return_date,
-                    $check_in,
-                    $check_out,
-                    $quantity,
-                    $total_amount
-                );
-
-                /*
-                 * The compatibility layer accepts the normal
-                 * mysqli bind_param format.
-                 */
-
-                if (mysqli_stmt_execute($stmt)) {
-
-                    // Get newly created booking ID
-                    $booking_id =
-                        mysqli_insert_id($conn);
-
-
-                    // ------------------------------------------------
-                    // Update availability
-                    // ------------------------------------------------
-
-                    if (
-                        $type === 'flight' ||
-                        $type === 'train' ||
-                        $type === 'bus'
-                    ) {
-
-                        $update_sql = "
-                            UPDATE {$table_name}
-                            SET available_seats =
-                                available_seats - {$quantity}
-                            WHERE id = {$item_id}
-                        ";
-
-                    } elseif ($type === 'hotel') {
-
-                        $update_sql = "
-                            UPDATE {$table_name}
-                            SET available_rooms =
-                                available_rooms - {$quantity}
-                            WHERE id = {$item_id}
-                        ";
-
-                    } elseif ($type === 'cruise') {
-
-                        $update_sql = "
-                            UPDATE {$table_name}
-                            SET available_cabins =
-                                available_cabins - {$quantity}
-                            WHERE id = {$item_id}
-                        ";
-
-                    } else {
-
-                        // Holiday
-                        $update_sql = "
-                            UPDATE {$table_name}
-                            SET available_slots =
-                                available_slots - {$quantity}
-                            WHERE id = {$item_id}
-                        ";
-                    }
-
-
-                    // Execute availability update
-                    $availability_result =
-                        mysqli_query(
-                            $conn,
-                            $update_sql
-                        );
-
-
-                    if (!$availability_result) {
-
-                        $error =
-                            "Booking was created, but availability could not be updated: " .
-                            mysqli_error($conn);
-
-                    } else {
-
-                        mysqli_stmt_close($stmt);
-
-                        // Go to payment
-                        header(
-                            "Location: payment.php?booking_id=" .
-                            urlencode($booking_id)
-                        );
-
-                        exit();
-                    }
-
-                } else {
-
-                    $error =
-                        "Booking failed: " .
-                        mysqli_stmt_error($stmt);
-                }
-
-                mysqli_stmt_close($stmt);
-            }
+            $availability_column = 'available_slots';
         }
+
+
+        $update_sql = "
+            UPDATE {$table_name}
+            SET {$availability_column} =
+                {$availability_column} - :quantity
+            WHERE id = :id
+        ";
+
+
+        $update_stmt = $conn->prepare($update_sql);
+
+        $update_stmt->execute([
+            ':quantity' => $quantity,
+            ':id' => $item_id
+        ]);
+
+
+        // ====================================================
+        // REDIRECT TO PAYMENT
+        // ====================================================
+
+        header(
+            "Location: payment.php?booking_id=" .
+            urlencode($booking_id)
+        );
+
+        exit();
+
+
+    } catch (PDOException $e) {
+
+        /*
+         * Log the actual database error.
+         * Don't expose database details to customers.
+         */
+
+        error_log(
+            "Booking error: " . $e->getMessage()
+        );
+
+        $error = "Booking failed. Please try again.";
     }
 }
 
@@ -490,28 +446,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     <title>Complete Booking - TravelEase</title>
 
+    <link rel="stylesheet" href="css/style.css">
 
-    <link
-        rel="stylesheet"
-        href="css/style.css"
-    >
+    <link rel="stylesheet" href="css/all.min.css">
 
-    <link
-        rel="stylesheet"
-        href="css/all.min.css"
-    >
-
-    <link
-        rel="stylesheet"
-        href="css/fonts.css"
-    >
+    <link rel="stylesheet" href="css/fonts.css">
 
     <link
         rel="icon"
         href="travelEASEonly.png"
         type="image/png"
     >
-
 
     <style>
 
@@ -546,7 +491,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             border: 2px solid #e0e0e0;
             border-radius: 6px;
             font-size: 1rem;
-            box-sizing: border-box;
         }
 
         .form-control:focus {
@@ -582,19 +526,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             margin-bottom: 20px;
         }
 
-        .error-box {
-            background: #fee;
-            color: #c33;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            word-break: break-word;
-        }
-
     </style>
 
 </head>
-
 
 <body>
 
@@ -610,12 +544,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     <?php if (isset($error)): ?>
 
-        <div class="error-box">
-
-            <?php
-            echo htmlspecialchars($error);
-            ?>
-
+        <div
+            style="
+                background: #fee;
+                color: #c33;
+                padding: 15px;
+                border-radius: 8px;
+                margin-bottom: 20px;
+            "
+        >
+            <?php echo htmlspecialchars($error); ?>
         </div>
 
     <?php endif; ?>
@@ -635,28 +573,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($type === 'flight') {
 
                     echo htmlspecialchars(
-                        $item['airline'] .
-                        ' ' .
+                        $item['airline'] . ' ' .
                         $item['flight_number']
                     );
 
                 } elseif ($type === 'hotel') {
 
-                    echo htmlspecialchars(
-                        $item['name']
-                    );
+                    echo htmlspecialchars($item['name']);
 
                 } elseif ($type === 'train') {
 
-                    echo htmlspecialchars(
-                        $item['train_name']
-                    );
+                    echo htmlspecialchars($item['train_name']);
 
                 } elseif ($type === 'bus') {
 
-                    echo htmlspecialchars(
-                        $item['bus_name']
-                    );
+                    echo htmlspecialchars($item['bus_name']);
 
                 } elseif ($type === 'cruise') {
 
@@ -668,9 +599,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 } else {
 
-                    echo htmlspecialchars(
-                        $item['package_name']
-                    );
+                    echo htmlspecialchars($item['package_name']);
                 }
 
                 ?>
@@ -697,9 +626,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 } elseif ($type === 'hotel') {
 
-                    echo htmlspecialchars(
-                        $item['city']
-                    );
+                    echo htmlspecialchars($item['city']);
 
                 } elseif ($type === 'train') {
 
@@ -719,15 +646,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 } elseif ($type === 'cruise') {
 
-                    echo htmlspecialchars(
-                        $item['departure_port']
-                    );
+                    echo htmlspecialchars($item['departure_port']);
 
                 } else {
 
-                    echo htmlspecialchars(
-                        $item['destination']
-                    );
+                    echo htmlspecialchars($item['destination']);
                 }
 
                 ?>
@@ -735,29 +658,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </p>
 
 
-            <?php
-            if (
+            <?php if (
                 in_array(
                     $type,
                     ['flight', 'train', 'bus', 'cruise'],
                     true
                 )
-            ):
-            ?>
+            ): ?>
 
                 <p>
 
-                    <strong>
-                        Departure Date:
-                    </strong>
+                    <strong>Departure Date:</strong>
 
                     <?php
-                    echo date(
-                        'd M Y',
-                        strtotime(
-                            $item['departure_date']
-                        )
-                    );
+
+                    if (!empty($item['departure_date'])) {
+
+                        echo date(
+                            'd M Y',
+                            strtotime($item['departure_date'])
+                        );
+
+                    } else {
+
+                        echo 'Not specified';
+                    }
+
                     ?>
 
                 </p>
@@ -778,8 +704,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 echo number_format(
                     ($type === 'hotel')
-                        ? $item['price_per_night']
-                        : $item['price'],
+                        ? (float)$item['price_per_night']
+                        : (float)$item['price'],
                     0
                 );
 
@@ -804,19 +730,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
 
 
-        <form
-            method="POST"
-            action=""
-        >
+        <form method="POST" action="">
 
 
             <?php if ($type === 'hotel'): ?>
 
+
                 <div class="form-group">
 
-                    <label>
-                        Check-in Date
-                    </label>
+                    <label>Check-in Date</label>
 
                     <input
                         type="date"
@@ -824,11 +746,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         class="form-control"
                         required
                         min="<?php echo date('Y-m-d'); ?>"
-                        value="<?php
-                            echo htmlspecialchars(
-                                $_POST['check_in'] ?? ''
-                            );
-                        ?>"
                     >
 
                 </div>
@@ -836,9 +753,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 <div class="form-group">
 
-                    <label>
-                        Check-out Date
-                    </label>
+                    <label>Check-out Date</label>
 
                     <input
                         type="date"
@@ -849,11 +764,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             echo date(
                                 'Y-m-d',
                                 strtotime('+1 day')
-                            );
-                        ?>"
-                        value="<?php
-                            echo htmlspecialchars(
-                                $_POST['check_out'] ?? ''
                             );
                         ?>"
                     >
@@ -869,11 +779,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 )
             ): ?>
 
+
                 <div class="form-group">
 
-                    <label>
-                        Travel Date
-                    </label>
+                    <label>Travel Date</label>
 
                     <input
                         type="date"
@@ -893,33 +802,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 
                 <p>
-                    <strong>
-                        Return Date:
-                    </strong>
+
+                    <strong>Return Date:</strong>
 
                     <span id="return_date">
                         --
                     </span>
+
                 </p>
+
 
             <?php endif; ?>
 
 
             <?php if ($type === 'cruise'): ?>
 
+
                 <p style="margin-top: 8px;">
 
-                    <strong>
-                        Departure Date:
-                    </strong>
+                    <strong>Departure Date:</strong>
 
                     <?php
+
                     echo date(
                         'd M Y',
-                        strtotime(
-                            $item['departure_date']
-                        )
+                        strtotime($item['departure_date'])
                     );
+
                     ?>
 
                 </p>
@@ -927,15 +836,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 <p>
 
-                    <strong>
-                        Return Date:
-                    </strong>
+                    <strong>Return Date:</strong>
 
                     <?php
-                    echo date(
-                        'd M Y',
-                        strtotime($return_date)
-                    );
+
+                    if ($return_date) {
+
+                        echo date(
+                            'd M Y',
+                            strtotime($return_date)
+                        );
+
+                    } else {
+
+                        echo 'Not specified';
+                    }
+
                     ?>
 
                 </p>
@@ -943,75 +859,75 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 <p>
 
-                    <strong>
-                        Duration:
-                    </strong>
+                    <strong>Duration:</strong>
 
                     <?php
                     echo (int)$item['duration_nights'];
                     ?>
+
                     Nights
 
                 </p>
+
 
             <?php endif; ?>
 
 
             <?php if ($type === 'holiday'): ?>
 
+
                 <?php if ($travel_date): ?>
 
                     <p>
 
-                        <strong>
-                            Travel Date:
-                        </strong>
+                        <strong>Travel Date:</strong>
 
                         <?php
+
                         echo date(
                             'd M Y',
                             strtotime($travel_date)
                         );
+
                         ?>
 
                     </p>
 
 
-                    <p>
+                    <?php if ($return_date): ?>
 
-                        <strong>
-                            Return Date:
-                        </strong>
+                        <p>
 
-                        <?php
-                        echo date(
-                            'd M Y',
-                            strtotime($return_date)
-                        );
-                        ?>
+                            <strong>Return Date:</strong>
 
-                    </p>
+                            <?php
+
+                            echo date(
+                                'd M Y',
+                                strtotime($return_date)
+                            );
+
+                            ?>
+
+                        </p>
+
+                    <?php endif; ?>
 
                 <?php endif; ?>
+
 
             <?php endif; ?>
 
 
             <div class="form-group">
 
-                <label>
-                    Quantity
-                </label>
+                <label>Quantity</label>
 
                 <input
                     type="number"
                     name="quantity"
                     class="form-control"
-                    value="<?php
-                        echo htmlspecialchars(
-                            $_POST['quantity'] ?? '1'
-                        );
-                    ?>"
+                    value="1"
                     min="1"
                     required
                 >
@@ -1061,7 +977,9 @@ if (travelInput && returnSpan) {
         if (travelInput.value) {
 
             const d =
-                new Date(travelInput.value);
+                new Date(
+                    travelInput.value + 'T00:00:00'
+                );
 
             d.setDate(
                 d.getDate() + durationDays
@@ -1081,9 +999,7 @@ if (travelInput && returnSpan) {
         } else {
 
             returnSpan.textContent = '--';
-
         }
-
     }
 
 
@@ -1092,8 +1008,8 @@ if (travelInput && returnSpan) {
         updateReturnDate
     );
 
-    updateReturnDate();
 
+    updateReturnDate();
 }
 
 </script>
