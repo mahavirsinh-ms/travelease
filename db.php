@@ -24,6 +24,12 @@ class TravelEaseResult {
     public function num_rows(): int {
         return count($this->rows);
     }
+
+    public function data_seek(int $offset): bool {
+        if ($offset < 0 || $offset > count($this->rows)) return false;
+        $this->index = $offset;
+        return true;
+    }
 }
 
 class TravelEaseStmt {
@@ -90,6 +96,10 @@ class TravelEaseConnection {
             die('Database connection failed. Check the Render PostgreSQL environment variables.');
         }
     }
+
+    public function begin_transaction(): bool { return $this->pdo->beginTransaction(); }
+    public function commit(): bool { return $this->pdo->commit(); }
+    public function rollback(): bool { return $this->pdo->rollBack(); }
 
     public function escape(string $value): string {
         return substr($this->pdo->quote($value), 1, -1);
@@ -163,6 +173,11 @@ function mysqli_insert_id($conn): int {
 }
 
 function mysqli_error($conn): string { return 'PostgreSQL query failed; see Render logs for details.'; }
+function mysqli_connect_error(): string { return 'PostgreSQL connection failed; check Render database environment variables.'; }
+function mysqli_begin_transaction($conn): bool { return $conn->begin_transaction(); }
+function mysqli_commit($conn): bool { return $conn->commit(); }
+function mysqli_rollback($conn): bool { return $conn->rollback(); }
+function mysqli_data_seek($result, int $offset): bool { return ($result instanceof TravelEaseResult) ? $result->data_seek($offset) : false; }
 
 function mysqli_prepare($conn, string $sql) {
     return new TravelEaseStmt($conn->pdo, $sql);

@@ -11,8 +11,8 @@ COPY . /var/www/html/
 
 RUN sed -ri 's/Listen 80/Listen 10000/' /etc/apache2/ports.conf \
     && sed -ri 's/<VirtualHost \*:80>/<VirtualHost *:10000>/' /etc/apache2/sites-available/000-default.conf \
-    && rm -f "/var/www/html/travelease new db.sql" \
-    && rm -f /var/www/html/test_db.php
+    && rm -f "/var/www/html/travelease new db.sql" /var/www/html/travelease_postgresql.sql \
+    && rm -f /var/www/html/test_db.php /var/www/html/adminer.php
 
 EXPOSE 10000
 CMD ["apache2-foreground"]
