@@ -101,12 +101,25 @@ class TravelEaseConnection {
     public function commit(): bool { return $this->pdo->commit(); }
     public function rollback(): bool { return $this->pdo->rollBack(); }
 
+    // Compatibility for application pages that still use $conn->prepare()
+    // from the original mysqli/MySQL codebase.
+    public function prepare(string $sql): TravelEaseStmt {
+        return new TravelEaseStmt($this->pdo, $sql);
+    }
+
     public function escape(string $value): string {
         return substr($this->pdo->quote($value), 1, -1);
     }
 }
 
 function travelEaseNormalizeSql(string $sql): string {
+    // MySQL's SHOW TABLES LIKE is not supported by PostgreSQL.
+    // Return a PostgreSQL information_schema query with the same result shape.
+    if (preg_match("/^\s*SHOW\s+TABLES\s+LIKE\s+'([^']+)'\s*$/i", trim($sql), $m)) {
+        $table = str_replace("'", "''", $m[1]);
+        return "SELECT table_name AS \"Tables_in_db\" FROM information_schema.tables WHERE table_schema = 'public' AND table_name LIKE '$table'";
+    }
+
     // MySQL date arithmetic used by the admin reports/bookings pages.
     $sql = preg_replace_callback(
         "/DATE_SUB\\(NOW\\(\\),\\s*INTERVAL\\s+(\\d+)\\s+(DAY|MONTH|YEAR|HOUR)\\)/i",
