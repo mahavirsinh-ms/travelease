@@ -24,7 +24,7 @@ $stats['total_revenue'] = (float)($row['revenue'] ?? 0);
 
 
 // Bookings in Last 7 Days
-$seven_days_bookings = mysqli_query($conn, "SELECT COUNT(*) as count FROM bookings WHERE booking_date >= DATE_SUB(NOW(), INTERVAL 7 DAY)");
+$seven_days_bookings = mysqli_query($conn, "SELECT COUNT(*) as count FROM bookings WHERE booking_date >= NOW() - INTERVAL '7 day'");
 $stats['seven_days_bookings'] = mysqli_fetch_assoc($seven_days_bookings)['count'];
 
 // Failed Payments
@@ -54,19 +54,19 @@ GROUP BY b.booking_type;
 $recent_bookings = mysqli_query($conn, "
 SELECT COUNT(*) AS count
 FROM bookings
-WHERE booking_date >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+WHERE booking_date >= NOW() - INTERVAL '6 months'
 ");
 $stats['recent_bookings'] = (int)(mysqli_fetch_assoc($recent_bookings)['count'] ?? 0);
 
 
 // Single optimized query for both table and chart
 $monthly_result = mysqli_query($conn, "SELECT 
-    DATE_FORMAT(payment_date, '%Y-%m') AS month,
+   TO_CHAR(payment_date, 'YYYY-MM') AS month,
     COALESCE(SUM(amount), 0) AS revenue
 
 FROM payments
 WHERE payment_status='success'
-AND payment_date >= DATE_SUB(NOW(), INTERVAL 6 MONTH)
+AND payment_date >= NOW() - INTERVAL '6 months'
 GROUP BY month
 ORDER BY month;
 ");
