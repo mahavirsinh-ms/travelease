@@ -16,8 +16,6 @@ if (!$type || !$item_id) {
     exit();
 }
 
-
-
 $table_name = '';
 
 switch ($type) {
@@ -73,7 +71,6 @@ if (!$item) {
 
 // ============================================================
 // INITIALIZE DATES
-// ============================================================
 
 $travel_date = null;
 $return_date = null;
@@ -499,7 +496,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             background: linear-gradient(
                 135deg,
                 #667eea 0%,
-                #764ba2 100%
+                #764ba1 100%
             );
 
             color: white;
