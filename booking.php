@@ -656,9 +656,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         } else {
 
-            $error =
-                "Booking failed. Please try again.";
-        }
+            $error = "Booking failed: " . mysqli_error($conn);
+}
     }
 }
 
