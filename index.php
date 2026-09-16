@@ -6,6 +6,17 @@ session_start();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta
+    name="description"
+    content="Travelease makes it easy to discover destinations, plan trips, and create unforgettable travel experiences."
+  />
+  <meta name="keywords" content="Travelease, travel, trips, destinations, travel planner, vacation" />
+
+<meta property="og:image" content="https://travelease-urlk.onrender.com/thumbnail.png" />
+  <meta property="og:image:alt" content="Travelease travel destination" />
+  <meta property="og:url" content="https://travelease-urlk.onrender.com/" />
+  <meta property="og:site_name" content="Travelease" />
+    
     <title>TravelEase - Travel Booking & Holiday Packages</title>
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/all.min.css">
